@@ -2,3 +2,5 @@ requests
 bs4
 httpx
 pytest
+jinja2
+pydantic_settings

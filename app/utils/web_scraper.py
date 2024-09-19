@@ -33,17 +33,15 @@ class HackerNewsStrategy(ParseStrategy):
                 points = int(points_element.get_text().split()[0])
 
             # get comments
-            comments_siblings = list(parent_children[i + 1].children)
+            comments_siblings = list(parent_children[i + 1].find_all('a', string=lambda text: "comment" in text.lower()))
             comments = 0
 
-            if len(comments_siblings) > 2:
-                comments_element = comments_siblings[2]
+            if len(comments_siblings) > 0:
+                comments_element = comments_siblings[0]
                 comments = int(comments_element.get_text().split()[0])
 
             res.append(Story(title=title, comments=comments, points=points, rank=ranks)) 
         return res
-
-
 
 class WebScraper:
     def __init__(self, url: str):

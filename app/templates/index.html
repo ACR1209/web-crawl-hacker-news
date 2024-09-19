@@ -1,0 +1,55 @@
+<html>
+
+<head>
+    <title>Hacker News Scraper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/app/static/main.js"></script>
+</head>
+
+<body class="bg-[#042019] text-[#defbf6] px-32 py-12">
+    <h1 class="text-3xl font-bold text-[#7ff0dc]">
+        Hacker News Scraper
+    </h1>
+
+    <div class="flex justify-between items-center mt-2 mb-5">
+        <div class="flex flex-col">
+            <label for="filter">Filter by:</label>
+            <select id="filter" name="filter"
+                class="bg-[#042019] border-[#7ff0dc] border text-white px-4 py-2 rounded-lg">
+                <option value="all">Default</option>
+                <option value="five-comments"> More than five words in the title ordered by the number of comments first
+                </option>
+                <option value="not-five-points">Less than or equal to five words in the title ordered by points</option>
+            </select>
+        </div>
+
+        <button id="refresh" class="bg-[#1d95e5] text-white px-4 py-2 rounded-lg">
+            Refresh data
+        </button>
+    </div>
+
+    <ul class="flex flex-col gap-4 h-[65vh] overflow-y-auto">
+
+        {% if data|length == 0 %}
+        <li class="border border-[#7ff0dc] p-4 rounded-lg">
+            No data available
+        </li>
+        {% endif %}
+
+        {% for story in data %}
+        <li class="border border-[#7ff0dc] story p-4 rounded-lg">
+            <div class="flex gap-2 text-lg font-semibold text-[#1d95e5]">
+                <p class="rank">{{ story.rank }}. </p>
+                <p class="title">{{ story.title }} </p>
+            </div>
+            <div class="flex gap-2">
+                <p class="points">{{ story.points }} points</p>
+                <p>|</p>
+                <p class="comments">{{ story.comments }} comments</p>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+
+</html>
