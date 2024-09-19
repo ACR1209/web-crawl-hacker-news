@@ -6,11 +6,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from app.models.story import Story
 from pydantic_settings import BaseSettings
-from app.utils.words import count_words
+from app.utils.words import within_word_range
 
 class Settings(BaseSettings):
     ENVIRONMENT: str
-
 
 CRAWL_URL = "https://news.ycombinator.com"
 web_scraper = WebScraper(CRAWL_URL)
@@ -42,7 +41,7 @@ def refresh():
         data = [
             Story(title="Pivotal Tracker will shut down", comments=50, points=91, rank=1),
             Story(title="Show HN: Chili. Rust port of Spice, a low-overhead parallelization library", comments=8, points=74, rank=2),
-            Story(title="Drift towards danger and the normalization of deviance (2017)", comments=19, points=54, rank=3),
+            Story(title="Drift towards danger and the normalization of deviance (2017)", comments=19, points=52, rank=3),
             Story(title="Diatom Arrangements", comments=6, points=35, rank=4),
             Story(title="I Revived 3-Axis CNC Mill G-Code Simulator", comments=6, points=61, rank=5),
             Story(title="Show HN: A CLI tool I made to self-host any app with two commands on a VPS", comments=0, points=21, rank=6),
@@ -77,41 +76,30 @@ def refresh():
 
 @app.get("/data")
 def get_data(order_by: str | None = "rank", count_words_min: int | None = 0, count_words_max: int | None = None):
-    return {"data": filterData(order_by=order_by, count_words_min=count_words_min, count_words_max=count_words_max)}
+    return {"data": filter_data(order_by=order_by, count_words_min=count_words_min, count_words_max=count_words_max)}
 
 @app.get("/", response_class=HTMLResponse)
 def read_root(request: Request, order_by: str | None = "rank", count_words_min: int | None = 0, count_words_max: int | None = None):
-    return templates.TemplateResponse(request=request, name="index.html", context={"data": filterData(order_by=order_by, count_words_min=count_words_min, count_words_max=count_words_max)})
+    return templates.TemplateResponse(request=request, name="index.html", context={"data": filter_data(order_by=order_by, count_words_min=count_words_min, count_words_max=count_words_max)})
 
-def filterData(order_by: str | None = "rank", count_words_min: int | None = 0, count_words_max: int | None = None):
+def filter_data(order_by: str = "rank", count_words_min: int = 0, count_words_max: int = None)->list[Story]:
     global data
 
-    if data is None or len(data) == 0:
+    if not data:  
         return []
 
-    returned_data = data
-    if order_by not in ["rank", "points", "comments"]:
+    if order_by not in {"rank", "points", "comments"}:
         order_by = "rank"
-    
-    if count_words_min < 0:
-        count_words_min = 0
-    
-    if count_words_max is not None and ( count_words_min > count_words_max):
+
+    count_words_min = max(0, count_words_min)
+
+    if count_words_max is not None and count_words_min > count_words_max:
         count_words_min, count_words_max = count_words_max, count_words_min
-    
-    if count_words_max is not None:
-        returned_data = [story for story in returned_data if count_words_min <= count_words(story.title) <= count_words_max]
 
-    if (count_words_min is not None and count_words_min != 0) and count_words_max is None:
-        returned_data = [story for story in returned_data if count_words(story.title) >= count_words_min]
+    filtered_data = [story for story in data if within_word_range(story, count_words_min=count_words_min, count_words_max=count_words_max)]
 
-    if order_by == "points":
-        returned_data.sort(key=lambda story: story.points, reverse=True)
+    sorting_key = {"rank": lambda story: story.rank,
+                   "points": lambda story: story.points,
+                   "comments": lambda story: story.comments}.get(order_by)
 
-    if order_by == "comments":
-        returned_data.sort(key=lambda story: story.comments, reverse=True)
-
-    if order_by == "rank":
-        returned_data.sort(key=lambda story: story.rank)
-
-    return returned_data
+    return sorted(filtered_data, key=sorting_key, reverse=(order_by != "rank"))
